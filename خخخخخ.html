@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التحقق من صحة الشهادات - دورات المدرب فاضل المبارك</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Cairo & Amiri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&display=swap" rel="stylesheet">
+
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- QR Code Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Contentful SDK -->
+    <script src="https://unpkg.com/contentful@latest/dist/contentful.browser.min.js"></script>
+    
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .certificate-title { font-family: 'Amiri', serif; }
+        .certificate-container {
+            /* This container will hold the background image */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 1px solid #e2e8f0; /* A fallback border */
+        }
+        .certificate-border-overlay {
+             /* This is the decorative border, now an overlay */
+            width: 100%;
+            height: 100%;
+            border: 10px solid transparent;
+            border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cstyle%3E.s%7Bfill:none;stroke:%23047857;stroke-width:2%7D%3C/style%3E%3Cpath class='s' d='M0 50h25M75 50h25M50 0v25M50 75v25'/%3E%3Cpath class='s' d='M0 0v15h15V0zM100 0v15h-15V0zM0 100v-15h15v15zM100 100v-15h-15v15z'/%3E%3C/svg%3E") 30 round;
+        }
+        .loader {
+            border: 2px solid #f3f3f3; border-top: 2px solid #3498db;
+            border-radius: 50%; width: 16px; height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen py-12">
+
+    <div class="w-full max-w-2xl p-8 space-y-8 bg-white rounded-2xl shadow-lg">
+        
+        <!-- Page Header -->
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-gray-800">دورات المدرب فاضل المبارك</h2>
+            <img src="https://i.imgur.com/kx81FBV.png" alt="شعار دورات المدرب فاضل المبارك" class="mx-auto h-28 w-auto my-4" crossorigin="anonymous" onerror="this.onerror=null; this.src='https://placehold.co/150x150/000000/FFFFFF?text=Logo';">
+            <h1 class="mt-4 text-3xl font-bold tracking-tight text-gray-900">نظام التحقق من الشهادات</h1>
+            <p class="mt-2 text-md text-gray-600">أدخل الرقم التسلسلي للشهادة للتحقق من صحتها وعرضها.</p>
+        </div>
+
+        <!-- Search Form -->
+        <form id="searchForm" class="mt-8 space-y-6">
+            <div>
+                <label for="serialNumber" class="sr-only">الرقم التسلسلي</label>
+                <input id="serialNumber" name="serialNumber" type="text" required class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-center" placeholder="ادخل الرقم التسلسلي هنا">
+            </div>
+            <button type="submit" id="searchButton" class="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 py-3 px-4 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <span id="searchButtonText">تحقق الآن</span>
+                <div id="searchButtonSpinner" class="hidden">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span>جاري البحث...</span>
+                </div>
+            </button>
+        </form>
+
+        <!-- Results Area -->
+        <div id="result" class="hidden mt-6"></div>
+
+        <!-- Footer with Twitter link -->
+        <div class="text-center pt-6 border-t border-gray-200 mt-8">
+            <a href="https://x.com/Fnar9595" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-gray-600 hover:text-blue-500 transition-colors duration-300">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
+                </svg>
+                <span>تابعني على X (تويتر سابقاً)</span>
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        const CONTENTFUL_SPACE_ID = '5igo70oll5d5';
+        const CONTENTFUL_ACCESS_TOKEN = '30Qeu0JGmTkEo1mYeK0K3y-nQGY4mFEK4My10qtFdQg';
+        const CERTIFICATE_CONTENT_TYPE_ID = 'certificate'; 
+        const SERIAL_NUMBER_FIELD_ID = 'serialNumber'; 
+        const TEMPLATE_CONTENT_TYPE_ID = 'certificateTemplate';
+        const PUBLIC_VERIFICATION_URL = 'https://your-website-domain.com/certificate-checker.html'; 
+
+        const contentfulClient = contentful.createClient({ space: CONTENTFUL_SPACE_ID, accessToken: CONTENTFUL_ACCESS_TOKEN });
+
+        const searchForm = document.getElementById('searchForm');
+        const serialNumberInput = document.getElementById('serialNumber');
+        const searchButton = document.getElementById('searchButton');
+        const searchButtonText = document.getElementById('searchButtonText');
+        const searchButtonSpinner = document.getElementById('searchButtonSpinner');
+        const resultDiv = document.getElementById('result');
+
+        searchForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const serialNumber = serialNumberInput.value.trim();
+            if (!serialNumber) return;
+            setLoadingState(true);
+            try {
+                const templateResponse = await contentfulClient.getEntries({ content_type: TEMPLATE_CONTENT_TYPE_ID, limit: 1 });
+                if (templateResponse.items.length === 0) throw new Error("لم يتم العثور على قالب الشهادة (certificateTemplate).");
+                const templateData = templateResponse.items[0].fields;
+
+                const certificateResponse = await contentfulClient.getEntries({ content_type: CERTIFICATE_CONTENT_TYPE_ID, [`fields.${SERIAL_NUMBER_FIELD_ID}`]: serialNumber, limit: 1 });
+                if (certificateResponse.items.length > 0) {
+                    const certificateData = certificateResponse.items[0].fields;
+                    displaySuccess(certificateData, templateData, serialNumber);
+                } else {
+                    displayError();
+                }
+            } catch (error) {
+                console.error("Error fetching data from Contentful:", error);
+                displayError(error.message || "حدث خطأ أثناء الاتصال بالخادم.");
+            } finally {
+                setLoadingState(false);
+            }
+        });
+
+        function setLoadingState(isLoading) {
+            searchButton.disabled = isLoading;
+            if (isLoading) {
+                searchButtonText.classList.add('hidden');
+                searchButtonSpinner.classList.remove('hidden');
+                searchButtonSpinner.classList.add('flex', 'items-center');
+                resultDiv.classList.add('hidden');
+                resultDiv.innerHTML = '';
+            } else {
+                searchButtonText.classList.remove('hidden');
+                searchButtonSpinner.classList.add('hidden');
+            }
+        }
+
+        function displaySuccess(certFields, templateFields, serialNumber) {
+            const cert = {
+                name: certFields.name || 'غير متوفر', course: certFields.course || 'غير متوفر',
+                date: certFields.date || 'غير متوفر', day: certFields.day || 'غير متوفر',
+            };
+            const template = {
+                title: templateFields.title || 'شهادة إتمام دورة', bodyText: templateFields.bodyText || 'يشهد المدرب بأن المتدرب/ـة',
+                completionText: templateFields.completionText || 'قد أتم متطلبات دورة:', dateText: templateFields.dateText || 'وذلك يوم {day} الموافق {date}.',
+                trainerName: templateFields.trainerName || 'فاضل المبارك',
+                backgroundUrl: templateFields.certificateBackground?.fields?.file?.url
+            };
+            const formattedDateText = template.dateText.replace('{day}', cert.day).replace('{date}', cert.date);
+            
+            resultDiv.innerHTML = `
+                <div class="bg-green-50 border-t-4 border-green-500 text-green-800 p-4 rounded-b-lg shadow-md mb-6"><div class="flex items-center"><svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="text-lg font-bold">تم التحقق من الشهادة بنجاح!</h3></div></div>
+                <div id="certificateToPrint" class="certificate-container">
+                    <div class="certificate-border-overlay p-8 text-gray-800 space-y-4 flex flex-col justify-between">
+                        <div class="flex justify-between items-center">
+                            <img src="https://i.imgur.com/kx81FBV.png" alt="شعار رئيسي" class="h-24" crossorigin="anonymous">
+                            <p class="text-lg font-semibold">دورات المدرب فاضل المبارك</p>
+                            <div class="w-24"></div>
+                        </div>
+                        <div class="text-center py-6"><h1 class="certificate-title text-6xl font-bold text-green-800">${template.title}</h1></div>
+                        <div class="text-center text-xl space-y-3 leading-relaxed"><p>${template.bodyText}</p><p class="font-bold text-3xl text-blue-700">${cert.name}</p><p>${template.completionText}</p><p class="font-bold text-3xl text-blue-700">${cert.course}</p><p>${formattedDateText}</p></div>
+                        <div class="flex justify-between items-end pt-10">
+                            <div class="text-center"><div id="qrcode" class="mx-auto mb-1"></div><p class="text-xs">للتحقق من صحة الشهادة</p></div>
+                            <div class="text-center text-sm"><p>رقم الشهادة: ${serialNumber}</p><p>هذه الشهادة معتمدة من قبل المدرب</p></div>
+                            <div class="text-center"><p class="font-bold">المدرب</p><p>${template.trainerName}</p><p class="border-t-2 border-gray-700 mt-2 pt-1">التوقيع</p></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-center"><button id="downloadBtn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center w-full sm:w-auto mx-auto"><span id="downloadBtnText">تحميل الشهادة (PDF)</span><div id="downloadBtnSpinner" class="loader hidden ml-2"></div></button></div>`;
+            resultDiv.classList.remove('hidden');
+
+            if (template.backgroundUrl) {
+                const certificateContainer = document.getElementById('certificateToPrint');
+                certificateContainer.style.backgroundImage = `url(https:${template.backgroundUrl})`;
+            }
+
+            const verificationUrl = PUBLIC_VERIFICATION_URL.split('?')[0] + '?serial=' + encodeURIComponent(serialNumber);
+            new QRCode(document.getElementById("qrcode"), { text: verificationUrl, width: 80, height: 80, correctLevel : QRCode.CorrectLevel.H });
+
+            document.getElementById('downloadBtn').addEventListener('click', handleDownload);
+        }
+
+        async function handleDownload() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadBtnText = document.getElementById('downloadBtnText');
+            const downloadBtnSpinner = document.getElementById('downloadBtnSpinner');
+            
+            downloadBtn.disabled = true;
+            downloadBtnText.textContent = 'جاري التجهيز...';
+            downloadBtnSpinner.classList.remove('hidden');
+
+            const certificateElement = document.getElementById('certificateToPrint');
+            const serialNumberText = Array.from(certificateElement.querySelectorAll('p')).find(p => p.textContent.includes('رقم الشهادة:')).textContent;
+            const serialNumber = serialNumberText.split(': ')[1];
+            
+            const images = certificateElement.getElementsByTagName('img');
+            const promises = Array.from(images).map(img => {
+                const image = new Image();
+                image.crossOrigin = "anonymous";
+                image.src = img.src;
+                return new Promise((resolve) => {
+                    image.onload = resolve;
+                    image.onerror = () => resolve(); 
+                });
+            });
+            
+            if (certificateElement.style.backgroundImage) {
+                const bgImageUrl = certificateElement.style.backgroundImage.slice(5, -2);
+                const bgImage = new Image();
+                bgImage.crossOrigin = "anonymous";
+                bgImage.src = bgImageUrl;
+                promises.push(new Promise((resolve) => {
+                    bgImage.onload = resolve;
+                    bgImage.onerror = () => resolve();
+                }));
+            }
+
+            try {
+                await Promise.all(promises);
+                
+                const opt = {
+                    margin: 0, filename: `Certificate-${serialNumber}.pdf`,
+                    image: { type: 'jpeg', quality: 1.0 },
+                    html2canvas: { scale: 3, useCORS: true, logging: false, backgroundColor: null },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+                };
+                await html2pdf().set(opt).from(certificateElement).save();
+
+            } catch (error) {
+                console.error("Error during PDF generation:", error);
+                alert("حدث خطأ أثناء تجهيز الصور للتحميل. يرجى المحاولة مرة أخرى.");
+            } finally {
+                downloadBtn.disabled = false;
+                downloadBtnText.textContent = 'تحميل الشهادة (PDF)';
+                downloadBtnSpinner.classList.add('hidden');
+            }
+        }
+
+        function displayError(message = "الرقم التسلسلي الذي أدخلته غير صحيح أو أن الشهادة غير مسجلة في نظامنا.") {
+            resultDiv.innerHTML = `<div class="bg-red-50 border-l-4 border-red-500 text-red-800 p-4 rounded-lg shadow-md"><div class="flex items-center"><svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg><h3 class="text-lg font-bold">خطأ في التحقق</h3></div><p class="mt-2 pr-9 text-sm">${message}</p></div>`;
+            resultDiv.classList.remove('hidden');
+        }
+
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const serialFromUrl = urlParams.get('serial');
+            if (serialFromUrl) {
+                serialNumberInput.value = serialFromUrl;
+                searchForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+
+</body>
+</html>
